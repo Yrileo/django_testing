@@ -36,7 +36,8 @@ class TestNoteMixin(TestMixinAuthor):
             title=cls.NOTE_TITLE,
             text=cls.NOTE_TEXT,
             slug=cls.NOTE_SLUG,
-            author=cls.author)
+            author=cls.author
+        )
 
 
 class TestMixinAuthorNoteReader(TestNoteMixin):
@@ -57,7 +58,8 @@ class CreateTestNoteMixin(TestMixinAuthor):
         cls.form_data = {
             'title': cls.NOTE_TITLE,
             'text': cls.NOTE_TEXT,
-            'slug': cls.NOTE_SLUG}
+            'slug': cls.NOTE_SLUG
+        }
 
 
 class DeleteEditTestNoteMixin(TestMixinAuthorNoteReader):
@@ -71,7 +73,8 @@ class DeleteEditTestNoteMixin(TestMixinAuthorNoteReader):
         cls.form_data = {
             'title': cls.NEW_NOTE_TITLE,
             'text': cls.NEW_NOTE_TEXT,
-            'slug': cls.NEW_NOTE_SLUG}
+            'slug': cls.NEW_NOTE_SLUG
+        }
 
 
 class TestCheck(TestCase):
