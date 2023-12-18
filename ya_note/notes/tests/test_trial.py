@@ -3,12 +3,12 @@ from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.urls import reverse
 
-from .mixin import TestMixinCreatNoteConstant, TestNoteMixin
+from .mixin import CreatNoteConstantTestMixin, TestNoteMixin
 
 User = get_user_model()
 
 
-class TestRoutes(TestMixinCreatNoteConstant, TestNoteMixin):
+class TestRoutes(CreatNoteConstantTestMixin, TestNoteMixin):
     def test_authornote(self):
         url = (
             ('notes:list', None),
