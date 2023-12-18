@@ -31,7 +31,6 @@ class TestRoutes(CreatNoteConstantTestMixin, TestNoteMixin):
             ('users:logout', None),
             ('users:signup', None)
         )
-
         for name, args in urls:
             with self.subTest(name=name):
                 url = reverse(name, args=args)
