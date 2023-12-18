@@ -16,7 +16,7 @@ from .utils import PK, URL, FORM_DATA
         (URL['detail'], PK, FORM_DATA),
     )
 )
-def test_anonymous_user_cant_create_comment(client, name, pk, news, form_data):
+def test_anonymous_user_cant_create_comment(client, name, pk, form_data):
     expected_comment_count = Comment.objects.count()
     url = reverse(name, args=pk)
     client.post(url, form_data)
@@ -27,7 +27,7 @@ def test_anonymous_user_cant_create_comment(client, name, pk, news, form_data):
 @pytest.mark.parametrize('name, pk, form_data', (
     (URL['detail'], PK, FORM_DATA),
 ))
-def test_user_can_create_comment(author_client, news, name, pk, form_data):
+def test_user_can_create_comment(author_client, name, pk, form_data):
     expected_comment_count = Comment.objects.count() + 1
     url = reverse(name, args=pk)
     response = author_client.post(url, form_data)
@@ -42,7 +42,7 @@ def test_user_can_create_comment(author_client, news, name, pk, form_data):
     (URL['delete'], URL['detail'], PK),
 ))
 def test_author_can_delete_commet(
-        author_client, news, name, name_news, pk, comment):
+        author_client, name, name_news, pk, comment):
     expected_comment_count = Comment.objects.count() - 1
     url = reverse(name, args=pk)
     response = author_client.delete(url)
@@ -54,7 +54,7 @@ def test_author_can_delete_commet(
 
 @pytest.mark.parametrize('name, pk', ((URL['delete'], PK),))
 def test_user_cant_delete_comment_of_another_user(
-    admin_client, name, pk, comment
+    admin_client, name, pk
 ):
     expected_comment_count = Comment.objects.count()
     url = reverse(name, args=pk)
