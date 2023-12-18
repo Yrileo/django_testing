@@ -10,7 +10,7 @@ from .utils import PK, URL
 @pytest.mark.django_db
 @pytest.mark.parametrize(
     'name, pk', ((URL['detail'], PK),))
-def test_anonymous_not_has_form(client, name, pk, news, comment):
+def test_anonymous_not_has_form(client, name, pk):
     url = reverse(name, args=pk)
     response = client.get(url)
     assert 'form' not in response.context
@@ -38,7 +38,7 @@ def test_news_count_page(client, name, news_list):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('name, pk', ((URL['detail'], PK),))
-def test_comment_order(client, news, name, pk, comments_list):
+def test_comment_order(client, news, name, pk):
     url = reverse(name, args=pk)
     response = client.get(url)
     assert 'news' in response.context
