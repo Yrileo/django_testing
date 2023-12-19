@@ -17,14 +17,16 @@ class TestNoteCreation(TestCheck,
                        CreateTestNoteMixin):
 
     def test_user_can_create_note(self):
-        response = self.author_client.post(self.url, data=self.form_data)
+        response = self.author_client.post(
+            self.add_note_url, data=self.form_data
+        )
         self.assertRedirects(response, self.success_url)
         note = Note.objects.last()
         self.check(note, self.NOTE_TITLE, self.NOTE_TEXT, self.NOTE_SLUG)
 
     def test_anonymous_cant_create_note(self):
         note_count_current = Note.objects.count()
-        self.client.post(self.url, data=self.form_data)
+        self.client.post(self.add_note_url, data=self.form_data)
         note_count = Note.objects.count()
         self.assertEqual(note_count_current, note_count)
 
@@ -35,7 +37,9 @@ class TestNoteCreation(TestCheck,
             slug=self.NOTE_SLUG,
             author=self.author,
         )
-        response = self.author_client.post(self.url, data=self.form_data)
+        response = self.author_client.post(
+            self.add_note_url, data=self.form_data
+        )
         self.assertFormError(response,
                              form='form', field='slug',
                              errors=f'{self.NOTE_SLUG}{WARNING}')

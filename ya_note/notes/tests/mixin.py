@@ -1,26 +1,28 @@
 from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
+
 from notes.models import Note
 
 User = get_user_model()
 
 
-class CreatNoteConstantTestMixin(TestCase):
+class CreatNoteConstantTestMixin:
 
     NOTE_TITLE = 'Тестовая заметка.'
     NOTE_TEXT = 'Текст заметки'
     NOTE_SLUG = 'slug-test-1'
 
 
-class UpdateNoteConstantTestMixin(TestCase):
+class UpdateNoteConstantTestMixin:
 
     NEW_NOTE_TITLE = 'New Тестовая заметка.'
     NEW_NOTE_TEXT = 'New Текст заметки'
     NEW_NOTE_SLUG = 'new-slug-test-1'
 
 
-class TestMixinAuthor(TestCase):
+class TestMixinAuthor:
+
     @classmethod
     def setUpTestData(cls):
         cls.author = User.objects.create(username='Фамилия Имя')
@@ -28,7 +30,22 @@ class TestMixinAuthor(TestCase):
         cls.author_client.force_login(cls.author)
 
 
-class TestNoteMixin(TestMixinAuthor):
+class CreateTestNoteMixin(TestMixinAuthor, TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        super().setUpTestData()
+        cls.add_note_url = reverse('notes:add')
+        cls.success_url = reverse('notes:success')
+        cls.form_data = {
+            'title': cls.NOTE_TITLE,
+            'text': cls.NOTE_TEXT,
+            'slug': cls.NOTE_SLUG
+        }
+
+
+class TestNoteMixin(TestMixinAuthor, TestCase):
+
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
@@ -41,6 +58,7 @@ class TestNoteMixin(TestMixinAuthor):
 
 
 class TestMixinAuthorNoteReader(TestNoteMixin):
+
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
@@ -49,20 +67,8 @@ class TestMixinAuthorNoteReader(TestNoteMixin):
         cls.reader_client.force_login(cls.reader)
 
 
-class CreateTestNoteMixin(TestMixinAuthor):
-    @classmethod
-    def setUpTestData(cls):
-        super().setUpTestData()
-        cls.url = reverse('notes:add')
-        cls.success_url = reverse('notes:success')
-        cls.form_data = {
-            'title': cls.NOTE_TITLE,
-            'text': cls.NOTE_TEXT,
-            'slug': cls.NOTE_SLUG
-        }
-
-
 class DeleteEditTestNoteMixin(TestMixinAuthorNoteReader):
+
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
