@@ -3,9 +3,10 @@ from datetime import timedelta
 from django.conf import settings
 from django.test import Client
 from django.utils import timezone
-from news.models import Comment, News
 
 import pytest
+
+from news.models import Comment, News
 
 
 @pytest.fixture
@@ -45,25 +46,25 @@ def comment(author, news):
 @pytest.fixture
 def news_list():
     today = timezone.now()
-    news_list = News.objects.bulk_create(
+    return News.objects.bulk_create(
         News(
             text=f'Текст новости {index}',
             title=f'Заголовок новости {index}',
             date=today - timedelta(days=index)
         )
         for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
-    )
-    return news_list
+    ).order_by('-date')
 
 
 @pytest.fixture
 def comments_list(author, news):
-    for index in range(3):
-        comment = Comment.objects.create(
+    today = timezone.now()
+    return [
+        Comment.objects.create(
             news=news,
             author=author,
-            text=f'Текст комментария {index}.'
+            text=f'Текст комментария {index}',
+            created=today + timedelta(days=index)
         )
-        comment.created = timezone.now() + timedelta(days=index)
-        comment.save()
-    return comments_list
+        for index in range(3)
+    ].order_by('-created')

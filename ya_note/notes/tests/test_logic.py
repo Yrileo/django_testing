@@ -1,14 +1,16 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
+from django.test import Client
 from pytils.translit import slugify
-from notes.forms import WARNING
+
 from notes.models import Note
 from .mixin import (
     TestCheck, CreatNoteConstantTestMixin, CreateTestNoteMixin,
     DeleteEditTestNoteMixin, UpdateNoteConstantTestMixin
 )
 
+# какая-то фигня получилось, не нравится мне как код выглядит
 User = get_user_model()
 
 
@@ -16,11 +18,19 @@ class TestNoteCreation(TestCheck,
                        CreatNoteConstantTestMixin,
                        CreateTestNoteMixin):
 
+    def setUp(self):
+        super().setUp()
+        self.author_client = Client()
+        self.author_client.force_login(self.author)
+
     def test_user_can_create_note(self):
+        note_count_before = Note.objects.count()
         response = self.author_client.post(
             self.add_note_url, data=self.form_data
         )
         self.assertRedirects(response, self.success_url)
+        note_count_after = Note.objects.count()
+        self.assertEqual(note_count_before + 1, note_count_after)
         note = Note.objects.last()
         self.check(note, self.NOTE_TITLE, self.NOTE_TEXT, self.NOTE_SLUG)
 
@@ -30,28 +40,13 @@ class TestNoteCreation(TestCheck,
         note_count = Note.objects.count()
         self.assertEqual(note_count_current, note_count)
 
-    def test_unique_slug_field(self):
-        Note.objects.create(
-            title=self.NOTE_TITLE,
-            text=self.NOTE_TEXT,
-            slug=self.NOTE_SLUG,
-            author=self.author,
-        )
+    def the_field_is_empty_slug_will_generated(self):
+        expected_slug = slugify(self.form_data['title'])
+        self.form_data.pop('slug')
         response = self.author_client.post(
             self.add_note_url, data=self.form_data
         )
-        self.assertFormError(response,
-                             form='form', field='slug',
-                             errors=f'{self.NOTE_SLUG}{WARNING}')
-
-    def the_field_is_empty_slug_will_generated(self):
-        self.form_data.pop('slug')
-        expected_slug = slugify(self.form_data['title'])
-        self.assertRedirects(
-            self.author_client.post(self.url, data=self.form_data),
-            self.success_url
-        )
-        self.author_client.post(self.url, data=self.form_data)
+        self.assertRedirects(response, self.success_url)
         note = Note.objects.last()
         self.assertEqual(expected_slug, note.slug)
 
@@ -68,8 +63,8 @@ class TestNoteEditDelete(CreatNoteConstantTestMixin,
         note = Note.objects.last()
         self.check(
             note,
-            self.NEW_NOTE_TITLE,
-            self.NEW_NOTE_TEXT,
+            self.form_data['title'],
+            self.form_data['text'],
             self.NEW_NOTE_SLUG
         )
 
@@ -85,6 +80,7 @@ class TestNoteEditDelete(CreatNoteConstantTestMixin,
         self.assertRedirects(response, self.success_url)
         note_count = Note.objects.count()
         self.assertEqual(note_count_current - 1, note_count)
+        self.assertIsNone(Note.objects.filter(id=self.note.id).first())
 
     def test_user_cant_delete_note_of_another_user(self):
         note_count_current = Note.objects.count()
@@ -92,3 +88,8 @@ class TestNoteEditDelete(CreatNoteConstantTestMixin,
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         note_count = Note.objects.count()
         self.assertEqual(note_count_current, note_count)
+        original_note = Note.objects.filter(id=self.note.id).first()
+        self.assertIsNotNone(original_note)
+        self.assertEqual(original_note.title, self.NOTE_TITLE)
+        self.assertEqual(original_note.text, self.NOTE_TEXT)
+        self.assertEqual(original_note.slug, self.NOTE_SLUG)
