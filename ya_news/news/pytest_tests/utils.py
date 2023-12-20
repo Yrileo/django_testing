@@ -1,3 +1,4 @@
+
 from pytest_lazyfixture import lazy_fixture
 
 ADMIN = lazy_fixture('admin_client')

@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from django.conf import settings
 from django.test import Client
@@ -44,16 +44,17 @@ def comment(author, news):
 
 
 @pytest.fixture
-def news_list():
-    today = timezone.now()
-    return News.objects.bulk_create(
-        News(
-            text=f'Текст новости {index}',
-            title=f'Заголовок новости {index}',
-            date=today - timedelta(days=index)
+def eleven_news():
+    today = datetime.today()
+    all_news = []
+    for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1):
+        one_news = News(
+            title=f'Текст новости {index}',
+            text='Заголовок новости',
+            date=today - timedelta(days=index),
         )
-        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
-    ).order_by('-date')
+        all_news.append(one_news)
+    News.objects.bulk_create(all_news)
 
 
 @pytest.fixture
