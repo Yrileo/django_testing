@@ -2,7 +2,7 @@ from http import HTTPStatus
 import pytest
 from django.urls import reverse
 from pytest_django.asserts import assertRedirects
-from .utils import CLIENT, URL
+from .utils import CLIENT, URL, PK
 
 
 @pytest.mark.django_db
@@ -21,6 +21,10 @@ def test_page_availability_for_users(
     name, parametrized_client, expected_status
 ):
     url = reverse(name)
+
+    if name in [URL['edit'], URL['delete']]:
+        url = reverse(name, args=(PK,))
+
     response = parametrized_client.get(url)
 
     if expected_status == HTTPStatus.FOUND:
