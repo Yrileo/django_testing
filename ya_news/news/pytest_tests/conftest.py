@@ -31,7 +31,7 @@ def news():
 
 @pytest.fixture
 def pk_news(news):
-    return (news.pk,)
+    return news.pk,
 
 
 @pytest.fixture

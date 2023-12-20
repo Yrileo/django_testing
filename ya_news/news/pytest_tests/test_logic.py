@@ -9,6 +9,7 @@ from pytest_django.asserts import assertFormError, assertRedirects
 from .utils import PK, URL, FORM_DATA
 
 
+# Мне кажется я больше ошибок наделал чем исправил что-то
 @pytest.mark.django_db
 def test_anonymous_user_cant_create_comment(client, pk_news):
     name, form_data = 'news:detail', FORM_DATA
