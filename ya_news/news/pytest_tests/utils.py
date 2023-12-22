@@ -7,6 +7,7 @@ PK = lazy_fixture('pk_news')
 FORM_DATA = {
     'text': 'Новый комментарий'
 }
+
 URL = {
     'home': 'news:home',
     'detail': 'news:detail',

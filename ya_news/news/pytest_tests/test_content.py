@@ -13,16 +13,16 @@ def assert_sorted_by_created(objects):
     assert list(objects) == sorted_objects
 
 
-@pytest.mark.parametrize('name, pk', ((URL['detail'], PK),))
-def test_anonymous_not_has_form(client, name, pk):
-    url = reverse(name, args=pk)
+def test_anonymous_not_has_form(client):
+    name = URL['detail']
+    url = reverse(name, args=[PK])
     response = client.get(url)
     assert 'form' not in response.context
 
 
-@pytest.mark.parametrize('name, pk', ((URL['detail'], PK),))
-def test_user_has_form(admin_client, name, pk):
-    url = reverse(name, args=pk)
+def test_user_has_form(admin_client):
+    name = URL['detail']
+    url = reverse(name, args=[PK])
     response = admin_client.get(url)
     assert 'form' in response.context
     assert isinstance(response.context['form'], CommentForm)
@@ -36,9 +36,17 @@ def test_news_count_page(client, name):
     assert object_list.count() <= 10
 
 
+def test_news_order(client):
+    name = URL['home']
+    url = reverse(name)
+    response = client.get(url)
+    object_list = response.context['object_list']
+    assert_sorted_by_created(object_list)
+
+
 @pytest.mark.parametrize('name, pk', ((URL['detail'], PK),))
 def test_comment_order(client, news, name, pk):
-    url = reverse(name, args=pk)
+    url = reverse(name, args=[pk])
     response = client.get(url)
     assert 'news' in response.context
     news = response.context['news']

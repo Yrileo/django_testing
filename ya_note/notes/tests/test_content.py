@@ -18,15 +18,10 @@ class TestContextNote(CreatNoteConstantTestMixin,
         self.assertTrue(self.note in object_list)
 
     def test_list_notes_user_doesnt_appear_notes_another(self):
-        users = (
-            (self.reader_client, False),
-        )
-        for client, value in users:
-            with self.subTest(client=client):
-                response = client.get(reverse('notes:list'))
-                object_list = response.context['object_list']
-                self.assertTrue(
-                    (self.note in object_list) is value)
+        client, value = self.reader_client, False
+        response = client.get(self.list_url)
+        object_list = response.context['object_list']
+        self.assertEqual((self.note in object_list), value)
 
     def test_user_has_form(self):
         for url, kwargs in (

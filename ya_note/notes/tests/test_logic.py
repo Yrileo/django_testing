@@ -10,7 +10,6 @@ from .mixin import (
     DeleteEditTestNoteMixin, UpdateNoteConstantTestMixin
 )
 
-# какая-то фигня получилось, не нравится мне как код выглядит
 User = get_user_model()
 
 
@@ -31,7 +30,7 @@ class TestNoteCreation(TestCheck,
         self.assertRedirects(response, self.success_url)
         note_count_after = Note.objects.count()
         self.assertEqual(note_count_before + 1, note_count_after)
-        note = Note.objects.last()
+        note = Note.objects.get(title=self.form_data['title'])
         self.check(note, self.NOTE_TITLE, self.NOTE_TEXT, self.NOTE_SLUG)
 
     def test_anonymous_cant_create_note(self):
@@ -40,14 +39,28 @@ class TestNoteCreation(TestCheck,
         note_count = Note.objects.count()
         self.assertEqual(note_count_current, note_count)
 
-    def the_field_is_empty_slug_will_generated(self):
-        expected_slug = slugify(self.form_data['title'])
-        self.form_data.pop('slug')
+    def test_user_can_create_note(self):
+        note_count_before = Note.objects.count()
         response = self.author_client.post(
             self.add_note_url, data=self.form_data
         )
         self.assertRedirects(response, self.success_url)
-        note = Note.objects.last()
+        note_count_after = Note.objects.count()
+        self.assertEqual(note_count_before + 1, note_count_after)
+        note = Note.objects.get(title=self.form_data['title'])
+        self.assertNotIn(
+            note.slug, Note.objects.exclude(id=note.id).values_list('slug',
+                                                                    flat=True)
+        )
+        self.check(note, self.NOTE_TITLE, self.NOTE_TEXT, note.slug)
+
+    def the_field_is_empty_slug_will_generated(self):
+        expected_slug = slugify(self.form_data['title'])
+        response = self.author_client.post(
+            self.add_note_url, data=self.form_data
+        )
+        self.assertRedirects(response, self.success_url)
+        note = Note.objects.get(title=self.form_data['title'])
         self.assertEqual(expected_slug, note.slug)
 
 
@@ -60,12 +73,12 @@ class TestNoteEditDelete(CreatNoteConstantTestMixin,
         response = self.author_client.post(self.url_edit, data=self.form_data)
         self.assertRedirects(response, self.success_url)
         self.note.refresh_from_db()
-        note = Note.objects.last()
+        note = Note.objects.get(title=self.form_data['title'])
         self.check(
             note,
             self.form_data['title'],
             self.form_data['text'],
-            self.NEW_NOTE_SLUG
+            self.form_data['slug']
         )
 
     def test_user_cant_edit_note_of_another_user(self):
@@ -93,3 +106,4 @@ class TestNoteEditDelete(CreatNoteConstantTestMixin,
         self.assertEqual(original_note.title, self.NOTE_TITLE)
         self.assertEqual(original_note.text, self.NOTE_TEXT)
         self.assertEqual(original_note.slug, self.NOTE_SLUG)
+        self.assertEqual(original_note.author, self.author)

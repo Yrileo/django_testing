@@ -55,12 +55,13 @@ def eleven_news():
         )
         all_news.append(one_news)
     News.objects.bulk_create(all_news)
+    return News.objects.all().order_by('-date')
 
 
 @pytest.fixture
 def comments_list(author, news):
     today = timezone.now()
-    return [
+    comments = [
         Comment.objects.create(
             news=news,
             author=author,
@@ -68,4 +69,5 @@ def comments_list(author, news):
             created=today + timedelta(days=index)
         )
         for index in range(3)
-    ].order_by('-created')
+    ]
+    return sorted(comments, key=lambda x: x.created)
