@@ -24,9 +24,11 @@ def test_anonymous_user_cant_create_comment(client, pk_news):
     assert comment_count == expected_comment_count
 
 
-def test_user_can_create_comment(author_client):
-    url = reverse(URL['detail'], args=PK)
-    form_data = FORM_DATA
+@pytest.mark.parametrize('name, pk, form_data', (
+    (URL['detail'], PK, FORM_DATA),
+))
+def test_user_can_create_comment(author_client, name, pk, form_data):
+    url = reverse(name, args=pk)
     assert Comment.objects.filter(text=form_data['text']).count() == 0
     expected_comment_count = Comment.objects.count() + 1
     response = author_client.post(url, form_data)

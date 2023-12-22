@@ -29,6 +29,7 @@ def news():
     )
 
 
+# умирает у меня все без этого, никак не могу победить
 @pytest.fixture
 def pk_news(news):
     return news.pk,
