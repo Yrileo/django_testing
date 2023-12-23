@@ -21,7 +21,6 @@ URL = {
 }
 
 
-# так ?
 @pytest.fixture
 def url_home():
     return reverse(URL['home'])

@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.test import Client, TestCase
 from django.urls import reverse
 
-from notes.forms import WARNING
 from notes.models import Note
 
 User = get_user_model()
@@ -108,18 +107,3 @@ class UniqueSlugCreationMixin(TestMixinAuthor):
             slug=cls.NOTE_SLUG,
             author=cls.author
         )
-
-
-class TestNoteCreation(TestCheck,
-                       CreatNoteConstantTestMixin,
-                       CreateTestNoteMixin,
-                       UniqueSlugCreationMixin):
-
-    def test_unique_slug_field(self):
-        self.create_duplicate_note()
-        response = self.author_client.post(
-            self.add_note_url, data=self.form_data
-        )
-        self.assertFormError(response,
-                             form='form', field='slug',
-                             errors=f'{self.NOTE_SLUG}{WARNING}')

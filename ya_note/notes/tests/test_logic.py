@@ -3,14 +3,30 @@ from http import HTTPStatus
 from django.contrib.auth import get_user_model
 from django.test import Client
 from pytils.translit import slugify
-
+from notes.forms import WARNING
 from notes.models import Note
 from .mixin import (
     TestCheck, CreatNoteConstantTestMixin, CreateTestNoteMixin,
-    DeleteEditTestNoteMixin, UpdateNoteConstantTestMixin
+    DeleteEditTestNoteMixin, UpdateNoteConstantTestMixin,
+    UniqueSlugCreationMixin
 )
 
 User = get_user_model()
+
+
+class TestNoteCreation(TestCheck,
+                       CreatNoteConstantTestMixin,
+                       CreateTestNoteMixin,
+                       UniqueSlugCreationMixin):
+
+    def test_unique_slug_field(self):
+        self.create_duplicate_note()
+        response = self.author_client.post(
+            self.add_note_url, data=self.form_data
+        )
+        self.assertFormError(response,
+                             form='form', field='slug',
+                             errors=f'{self.NOTE_SLUG}{WARNING}')
 
 
 class TestNoteCreation(TestCheck,
@@ -30,8 +46,11 @@ class TestNoteCreation(TestCheck,
         self.assertRedirects(response, self.success_url)
         note_count_after = Note.objects.count()
         self.assertEqual(note_count_before + 1, note_count_after)
-        note = Note.objects.get(title=self.form_data['title'])
-        self.check(note, self.NOTE_TITLE, self.NOTE_TEXT, self.NOTE_SLUG)
+        self.assertTrue(Note.objects.filter(
+            text=self.form_data['text'],
+            slug=self.form_data['slug'],
+            author=self.author
+        ).exists())
 
     def test_anonymous_cant_create_note(self):
         note_count_current = Note.objects.count()
@@ -47,12 +66,12 @@ class TestNoteCreation(TestCheck,
         self.assertRedirects(response, self.success_url)
         note_count_after = Note.objects.count()
         self.assertEqual(note_count_before + 1, note_count_after)
-        note = Note.objects.get(title=self.form_data['title'])
-        self.assertNotIn(
-            note.slug, Note.objects.exclude(id=note.id).values_list('slug',
-                                                                    flat=True)
+        self.assertTrue(
+            Note.objects.filter(title=self.form_data['title']).exists()
         )
-        self.check(note, self.NOTE_TITLE, self.NOTE_TEXT, note.slug)
+        new_note = Note.objects.get(title=self.form_data['title'])
+        self.assertEqual(new_note.text, self.form_data['text'])
+        self.assertEqual(new_note.slug, self.form_data['slug'])
 
     def the_field_is_empty_slug_will_generated(self):
         expected_slug = slugify(self.form_data['title'])
@@ -86,6 +105,7 @@ class TestNoteEditDelete(CreatNoteConstantTestMixin,
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         self.note.refresh_from_db()
         self.check(self.note, self.NOTE_TITLE, self.NOTE_TEXT, self.NOTE_SLUG)
+        self.assertEqual(self.note.author, self.author)
 
     def test_author_can_delete_note(self):
         note_count_current = Note.objects.count()

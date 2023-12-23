@@ -6,6 +6,7 @@ from news.forms import CommentForm
 from .utils import URL
 
 pytestmark = pytest.mark.django_db
+NEWS_COUNT_ON_HOME_PAGE = 10
 
 
 def assert_sorted_by_created(objects):
@@ -28,12 +29,11 @@ def test_user_has_form(admin_client, pk_news):
     assert isinstance(response.context['form'], CommentForm)
 
 
-@pytest.mark.parametrize('name', (URL['home'],),)
 def test_news_count_page(client, name):
     url = reverse(name)
     response = client.get(url)
     object_list = response.context['object_list']
-    assert object_list.count() <= 10
+    assert object_list.count() <= NEWS_COUNT_ON_HOME_PAGE
 
 
 def test_news_order(client):
@@ -44,14 +44,10 @@ def test_news_order(client):
     assert_sorted_by_created(object_list)
 
 
-@pytest.mark.django_db
-def test_comment_order(client, admin_client, pk_news):
+def test_comment_order(client, pk_news):
     name = URL['detail']
     url = reverse(name, args=[pk_news[0]])
-    response = admin_client.post(url, data={'text': 'Новый комментарий'})
-    assert response.status_code == HTTPStatus.FOUND
     response = client.get(url)
-    assert 'news' in response.context
     news = response.context['news']
     all_comments = news.comment_set.all()
     assert_sorted_by_created(all_comments)

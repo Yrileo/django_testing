@@ -1,37 +1,93 @@
 from http import HTTPStatus
 
 from django.contrib.auth import get_user_model
+from django.test import TestCase, Client
 from django.urls import reverse
 
-from .mixin import CreatNoteConstantTestMixin, TestNoteMixin
+from notes.models import Note
 
 User = get_user_model()
 
 
-class TestRoutes(CreatNoteConstantTestMixin, TestNoteMixin):
-    def setUp(self):
-        super().setUp()
-        self.URLS = {
-            'list': reverse('notes:list'),
-            'success': reverse('notes:success'),
-            'add': reverse('notes:add'),
-            'detail': reverse('notes:detail', kwargs={'slug': self.note.slug}),
-            'edit': reverse('notes:edit', kwargs={'slug': self.note.slug}),
-            'delete': reverse('notes:delete', kwargs={'slug': self.note.slug}),
-            'home': reverse('notes:home'),
-            'login': reverse('users:login'),
-            'logout': reverse('users:logout'),
-            'signup': reverse('users:signup'),
-        }
+class TestRoutes(TestCase):
+
+    @classmethod
+    def setUp(cls):
+        cls.author = User.objects.create(username='Автор')
+        cls.author_client = Client()
+        cls.author_client.force_login(cls.author)
+        cls.reader = User.objects.create(username='Читатель')
+        cls.reader_client = Client()
+        cls.reader_client.force_login(cls.reader)
+        cls.note = Note.objects.create(
+            title='Новая заметка',
+            text='Очень новая заметка',
+            slug='note-slug',
+            author=cls.author
+        )
+        cls.slug = [cls.note.slug]
+        cls.url_home = reverse('notes:home')
+        cls.url_list = reverse('notes:list')
+        cls.url_detail = reverse('notes:detail', args=cls.slug)
+        cls.url_edit = reverse('notes:edit', args=cls.slug)
+        cls.url_delete = reverse('notes:delete', args=cls.slug)
+        cls.url_success = reverse('notes:success')
+        cls.login_url = reverse('users:login')
+        cls.url_add = reverse('notes:add')
+        cls.logout_url = reverse('users:logout')
+        cls.signup_url = reverse('users:signup')
+        cls.cortege_urls = (
+            cls.url_home,
+            cls.url_list,
+            cls.url_detail,
+            cls.url_edit,
+            cls.url_delete,
+            cls.url_success,
+            cls.login_url,
+            cls.url_add,
+            cls.logout_url,
+            cls.signup_url
+        )
+        cls.banned_urls_reader = (cls.url_detail,
+                                  cls.url_edit,
+                                  cls.url_delete)
+        cls.banned_urls_client = (cls.url_add,
+                                  cls.url_success,
+                                  cls.url_delete,
+                                  cls.url_edit,
+                                  cls.url_detail,
+                                  cls.url_list)
 
     def test_authornote(self):
-        for name, url in self.URLS.items():
-            with self.subTest(name=name):
-                response = self.author_client.get(url, follow=True)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
+        for url in self.cortege_urls:
+            with self.subTest(url=url):
+                res = self.author_client.get(url)
+                self.assertEqual(res.status_code, HTTPStatus.OK)
 
     def test_pages_availability(self):
-        for name, url in self.URLS.items():
-            with self.subTest(name=name):
-                response = self.client.get(url, follow=True)
-                self.assertEqual(response.status_code, HTTPStatus.OK)
+        list_allow = set(
+            set(self.cortege_urls) - set(self.banned_urls_reader)
+        )
+        for urls in self.banned_urls_reader:
+            with self.subTest(urls=urls):
+                response = self.reader_client.get(urls)
+                self.assertEqual(response.status_code,
+                                 HTTPStatus.NOT_FOUND)
+        for url in list_allow:
+            with self.subTest(url=url, urls=urls):
+                res = self.reader_client.get(url)
+                self.assertEqual(res.status_code, HTTPStatus.OK)
+
+    def test_redirects(self):
+        list_allow = set(
+            set(self.cortege_urls) - set(self.banned_urls_client)
+        )
+        for urls in self.banned_urls_client:
+            with self.subTest(urls=urls):
+                response = self.client.get(urls)
+                self.assertEqual(response.status_code,
+                                 HTTPStatus.FOUND)
+        for url in list_allow:
+            with self.subTest(url=url):
+                res = self.client.get(url)
+                self.assertEqual(res.status_code, HTTPStatus.OK)
