@@ -65,30 +65,21 @@ class TestRoutes(TestCase):
                 self.assertEqual(res.status_code, HTTPStatus.OK)
 
     def test_pages_availability(self):
-        list_allow = set(
-            set(self.cortege_urls) - set(self.banned_urls_reader)
-        )
-
-        for urls in self.banned_urls_reader:
-            with self.subTest(urls=urls):
-                response = self.reader_client.get(urls)
-                self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-
-        for url in list_allow:
+        for url in self.cortege_urls:
             with self.subTest(url=url):
-                res = self.reader_client.get(url)
-                self.assertEqual(res.status_code, HTTPStatus.OK)
+                response = self.reader_client.get(url)
+                expected_status = (
+                    HTTPStatus.OK if url not in self.banned_urls_reader
+                    else HTTPStatus.NOT_FOUND
+                )
+                self.assertEqual(response.status_code, expected_status)
 
     def test_redirects(self):
-        list_allow = set(
-            set(self.cortege_urls) - set(self.banned_urls_client)
-        )
-        for urls in self.banned_urls_client:
-            with self.subTest(urls=urls):
-                response = self.client.get(urls)
-                self.assertEqual(response.status_code,
-                                 HTTPStatus.FOUND)
-        for url in list_allow:
+        for url in self.cortege_urls:
             with self.subTest(url=url):
-                res = self.client.get(url)
-                self.assertEqual(res.status_code, HTTPStatus.OK)
+                response = self.client.get(url)
+                expected_status = (
+                    HTTPStatus.OK if url not in self.banned_urls_client
+                    else HTTPStatus.FOUND
+                )
+                self.assertEqual(response.status_code, expected_status)
