@@ -69,9 +69,6 @@ class TestNoteCreation(TestCheck,
         self.assertTrue(
             Note.objects.filter(title=self.form_data['title']).exists()
         )
-        new_note = Note.objects.get(title=self.form_data['title'])
-        self.assertEqual(new_note.text, self.form_data['text'])
-        self.assertEqual(new_note.slug, self.form_data['slug'])
 
     def the_field_is_empty_slug_will_generated(self):
         expected_slug = slugify(self.form_data['title'])

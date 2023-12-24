@@ -1,53 +1,43 @@
-from django.urls import reverse
-from http import HTTPStatus
 import pytest
 
 from news.forms import CommentForm
-from .utils import URL
 
 pytestmark = pytest.mark.django_db
-NEWS_COUNT_ON_HOME_PAGE = 10
+NEWS_COUNT_ON_PAGE = 10
 
 
-def assert_sorted_by_created(objects):
-    sorted_objects = sorted(objects, key=lambda x: x.created)
-    assert list(objects) == sorted_objects
+def test_news_count(client, url_home):
+    response = client.get(url_home)
+    object_list = response.context.get('object_list', [])
+    print(f"Number of news articles: {len(object_list)}")
+    print(f"News articles: {object_list}")
+    news_count = len(object_list)
+    assert news_count <= NEWS_COUNT_ON_PAGE
 
 
-def test_anonymous_not_has_form(client, pk_news):
-    name = URL['detail']
-    url = reverse(name, args=[pk_news[0]])
-    response = client.get(url)
-    assert 'form' not in response.context
-
-
-def test_user_has_form(admin_client, pk_news):
-    name = URL['detail']
-    url = reverse(name, args=[pk_news[0]])
-    response = admin_client.get(url)
-    assert 'form' in response.context
-    assert isinstance(response.context['form'], CommentForm)
-
-
-def test_news_count_page(client, name):
-    url = reverse(name)
-    response = client.get(url)
+def test_news_order(client, url_home):
+    response = client.get(url_home)
     object_list = response.context['object_list']
-    assert object_list.count() <= NEWS_COUNT_ON_HOME_PAGE
+    all_dates = [news.date for news in object_list]
+    sorted_dates = sorted(all_dates, reverse=True)
+    assert all_dates == sorted_dates
 
 
-def test_news_order(client):
-    name = URL['home']
-    url = reverse(name)
-    response = client.get(url)
-    object_list = response.context['object_list']
-    assert_sorted_by_created(object_list)
+def test_comments_order(client, url_detail):
+    response = client.get(url_detail)
+    list_comments = response.context['news'].comment_set.all()
+    all_dates = [comment.created for comment in list_comments]
+    sorted_dates = sorted(all_dates)
+    assert all_dates == sorted_dates
 
 
-def test_comment_order(client, pk_news):
-    name = URL['detail']
-    url = reverse(name, args=[pk_news[0]])
-    response = client.get(url)
-    news = response.context['news']
-    all_comments = news.comment_set.all()
-    assert_sorted_by_created(all_comments)
+def test_comment_form_availability_for_different_users(client, url_detail):
+    response = client.get(url_detail)
+    assert ('form' in response.context) is False
+
+
+def test_for_author_in_form_there_commentform(admin_client, url_detail):
+    response = admin_client.get(url_detail)
+    assert ('form' in response.context) is True
+    list_forms = response.context['form']
+    assert isinstance(list_forms, CommentForm)

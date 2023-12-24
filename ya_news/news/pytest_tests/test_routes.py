@@ -1,38 +1,47 @@
 from http import HTTPStatus
 
 import pytest
-from django.urls import reverse
 from pytest_django.asserts import assertRedirects
+from pytest_lazyfixture import lazy_fixture
 
-from .utils import ADMIN, AUTHOR, CLIENT, PK, URL
+pytestmark = pytest.mark.django_db
+
+DETAIL = lazy_fixture('url_detail')
+HOME = lazy_fixture('url_home')
+LOGIN = lazy_fixture('login_url')
+LOGOUT = lazy_fixture('logout_url')
+SIGNUP = lazy_fixture('signup_url')
+EDIT = lazy_fixture('url_edit')
+DELETE = lazy_fixture('url_delete')
+CLIENT = pytest.lazy_fixture('client')
+AUTHOR = pytest.lazy_fixture('author_client')
+ADMIN = pytest.lazy_fixture('admin_client')
 
 
-@pytest.mark.django_db
 @pytest.mark.parametrize(
-    'name, pk, parametrized_client, expected_status',
-    [
-        (URL['detail'], PK, CLIENT, HTTPStatus.OK),
-        (URL['edit'], PK, AUTHOR, HTTPStatus.OK),
-        (URL['delete'], PK, AUTHOR, HTTPStatus.OK),
-        (URL['edit'], PK, ADMIN, HTTPStatus.NOT_FOUND),
-        (URL['delete'], PK, ADMIN, HTTPStatus.NOT_FOUND),
-        (URL['home'], None, CLIENT, HTTPStatus.OK),
-        (URL['login'], None, CLIENT, HTTPStatus.OK),
-        (URL['logout'], None, CLIENT, HTTPStatus.OK),
-        (URL['signup'], None, CLIENT, HTTPStatus.OK),
-    ]
+    'url, clients, status', (
+        (DETAIL, CLIENT, HTTPStatus.OK),
+        (HOME, CLIENT, HTTPStatus.OK),
+        (LOGIN, CLIENT, HTTPStatus.OK),
+        (LOGOUT, CLIENT, HTTPStatus.OK),
+        (SIGNUP, CLIENT, HTTPStatus.OK),
+        (EDIT, AUTHOR, HTTPStatus.OK),
+        (EDIT, ADMIN, HTTPStatus.NOT_FOUND),
+        (DELETE, AUTHOR, HTTPStatus.OK),
+        (DELETE, ADMIN, HTTPStatus.NOT_FOUND))
 )
-def test_page_availability(
-    # не понимаю почему при удаление comment все ломается
-    name, pk, parametrized_client, expected_status, comment
+def test_pages_availability_for_certain_user(
+    url, clients, status
 ):
-    url = reverse(name, args=pk) if pk else reverse(name)
+    response = clients.get(url)
+    assert response.status_code == status
 
-    if name in [URL['edit'], URL['delete']] and not pk:
-        login_url = reverse(URL["login"])
-        expected_url = f'{login_url}?next={url}'
-        response = parametrized_client.get(url)
-        assertRedirects(response, expected_url)
-    else:
-        response = parametrized_client.get(url)
-        assert response.status_code == expected_status
+
+@pytest.mark.parametrize(
+    'url',
+    (DELETE, EDIT),
+)
+def test_redirects(client, url, login_url):
+    expected_url = f'{login_url}?next={url}'
+    response = client.get(url)
+    assertRedirects(response, expected_url)

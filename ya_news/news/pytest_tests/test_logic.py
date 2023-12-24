@@ -1,115 +1,108 @@
 from http import HTTPStatus
+from random import choice
 
 import pytest
-
-from django.urls import reverse
+from pytest_django.asserts import assertRedirects, assertFormError
 
 from news.forms import BAD_WORDS, WARNING
 from news.models import Comment
-from pytest_django.asserts import assertFormError, assertRedirects
-from .utils import PK, URL, FORM_DATA
-
 
 pytestmark = pytest.mark.django_db
 
 
-def test_anonymous_user_cant_create_comment(client, pk_news):
-    url = reverse('news:detail', args=pk_news)
-    form_data = {'text': 'Новый комментарий'}
-    expected_comment_count = Comment.objects.count()
-
-    client.post(url, form_data)
-
-    comment_count = Comment.objects.count()
-    assert comment_count == expected_comment_count
-
-
-@pytest.mark.parametrize('name, pk, form_data', (
-    (URL['detail'], PK, FORM_DATA),
-))
-def test_user_can_create_comment(author_client, name, pk, form_data):
-    url = reverse(name, args=pk)
-    assert Comment.objects.filter(text=form_data['text']).count() == 0
-    expected_comment_count = Comment.objects.count() + 1
-    response = author_client.post(url, form_data)
-    comment_count = Comment.objects.count()
-    assert comment_count == expected_comment_count
-    comment = Comment.objects.get(text=form_data['text'])
-    assertRedirects(response, f'{url}#comments')
-    assert comment.text == form_data['text']
-
-
-@pytest.mark.parametrize('name, name_news, pk', (
-    (URL['delete'], URL['detail'], PK),
-))
-def test_author_can_delete_comment(
-        author_client, name, name_news, pk, comment):
-    initial_comment_count = Comment.objects.count()
-    url_delete = reverse(name, args=pk)
-    response = author_client.delete(url_delete)
-    assert response.status_code == HTTPStatus.FOUND
-    final_comment_count = Comment.objects.count()
-    assert final_comment_count == initial_comment_count - 1
-    url_redirect = reverse(name_news, args=pk)
-    assertRedirects(response, f'{url_redirect}#comments')
-
-
-@pytest.mark.parametrize('name, pk', ((URL['delete'], PK),))
-def test_user_cant_delete_comment_of_another_user(
-    admin_client, name, pk
-):
-    initial_comment_count = Comment.objects.count()
-    expected_comment_count = Comment.objects.count()
-    url = reverse(name, args=pk)
-    response = admin_client.delete(url)
-    comment_count = Comment.objects.count()
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert expected_comment_count == comment_count
-    assert Comment.objects.count() == initial_comment_count
-
-
-@pytest.mark.parametrize('name, name_news, pk, form_data', (
-    (URL['edit'], URL['detail'], PK, FORM_DATA),
-))
 def test_author_can_edit_comment(
-    author_client, comment, form_data, name, name_news, pk
+        author_client, form_data, comment, news, url_detail, url_edit, author
 ):
-    NEW_COMMENT_TEXT = 'Новый комментарий'
-    url = reverse(name, args=pk)
-    response = author_client.post(url, data=form_data)
-    url_redirect = reverse(name_news, args=pk)
-    assertRedirects(response, f'{url_redirect}#comments')
-    comment.refresh_from_db()
-    assert comment.text == NEW_COMMENT_TEXT
+    set_comments_old = set(Comment.objects.all())
+    count_old = Comment.objects.count()
+    response = author_client.post(url_edit, data=form_data)
+    expected_url = f'{url_detail}#comments'
+    assertRedirects(response, expected_url)
+    set_comments_new = set(Comment.objects.all())
+    differences = len(set_comments_old.difference(set_comments_new))
+    assert differences == 0
+    count_new = Comment.objects.count()
+    comment = set_comments_new.pop()
+    assert comment.text == form_data['text']
+    assert comment.author == author
+    assert comment.news == news
+    assert count_old == count_new
 
 
-@pytest.mark.parametrize('name, pk, form_data', (
-    (URL['edit'], PK, FORM_DATA),
-))
-def test_user_cant_edit_comment_of_another_user(
-    admin_client, comment, name, pk, form_data
+def test_other_user_cant_edit_comment(
+        admin_client, form_data, comment, url_edit, author, news
 ):
-    original_text = comment.text
-    original_author = comment.author
-    original_created_at = comment.created
-    url = reverse(name, args=pk)
-    response = admin_client.post(url, data=form_data)
-    comment.refresh_from_db()
+    set_comments_old = set(Comment.objects.all())
+    count_old = Comment.objects.count()
+    response = admin_client.post(url_edit, form_data)
+    old_com = comment.text
     assert response.status_code == HTTPStatus.NOT_FOUND
-    assert comment.text == original_text
-    assert comment.author == original_author
-    assert comment.created == original_created_at
+    set_comments_new = set(Comment.objects.all())
+    count_new = Comment.objects.count()
+    differences = len(set_comments_old.difference(set_comments_new))
+    assert differences == 0
+    comment = set_comments_new.pop()
+    assert comment.text == old_com
+    assert comment.author == author
+    assert comment.news == news
+    assert count_old == count_new
 
 
-@pytest.mark.parametrize('name, pk', (
-    (URL['detail'], PK),
-))
-@pytest.mark.parametrize('word', BAD_WORDS)
-def test_user_cant_use_bad_words(author_client, name, pk, word):
-    expected_comment_count = Comment.objects.count()
-    bad_words_data = {'text': f'Какой-то текст, {word}, еще текст'}
-    url = reverse(name, args=pk)
-    response = author_client.post(url, data=bad_words_data)
+def test_author_can_delete_comment(
+        author_client, url_delete, url_detail
+):
+    count_old = Comment.objects.count()
+    response = author_client.post(url_delete)
+    expected_url = f'{url_detail}#comments'
+    assertRedirects(response, expected_url)
+    count_new = Comment.objects.count()
+    assert count_old - 1 == count_new
+
+
+def test_other_user_cant_delete_comment(
+        admin_client, url_delete
+):
+    count_old = Comment.objects.count()
+    response = admin_client.post(url_delete)
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    count_new = Comment.objects.count()
+    assert count_old == count_new
+
+
+def test_user_can_create_comment(
+    author_client, news, form_data, url_detail, author
+):
+    set_comments_old = set(Comment.objects.all())
+    count_old = Comment.objects.count()
+    response = author_client.post(url_detail, data=form_data)
+    expected_url = f'{url_detail}#comments'
+    assertRedirects(response, expected_url)
+    set_comments_new = set(Comment.objects.all())
+    differences = len(set_comments_new.difference(set_comments_old))
+    assert differences == 1
+    comment = set_comments_new.pop()
+    count_new = Comment.objects.count()
+    assert comment.text == form_data['text']
+    assert comment.news == news
+    assert comment.author == author
+    assert count_old + 1 == count_new
+
+
+def test_other_user_cant_create_comment(
+        client, form_data, url_detail, login_url
+):
+    count_old = Comment.objects.count()
+    response = client.post(url_detail, data=form_data)
+    expected_url = f'{login_url}?next={url_detail}'
+    assertRedirects(response, expected_url)
+    count_new = Comment.objects.count()
+    assert count_old == count_new
+
+
+def test_user_cant_use_bad_words(admin_client, url_detail):
+    count_old = Comment.objects.count()
+    bad_words_data = {'text': f'Mr Petrov {choice(BAD_WORDS)}!'}
+    response = admin_client.post(url_detail, data=bad_words_data)
     assertFormError(response, form='form', field='text', errors=WARNING)
-    comment_count = Comment.objects.count()
-    assert expected_comment_count == comment_count
+    count_new = Comment.objects.count()
+    assert count_old == count_new
