@@ -68,13 +68,14 @@ class TestRoutes(TestCase):
         list_allow = set(
             set(self.cortege_urls) - set(self.banned_urls_reader)
         )
+
         for urls in self.banned_urls_reader:
             with self.subTest(urls=urls):
                 response = self.reader_client.get(urls)
-                self.assertEqual(response.status_code,
-                                 HTTPStatus.NOT_FOUND)
+                self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+
         for url in list_allow:
-            with self.subTest(url=url, urls=urls):
+            with self.subTest(url=url):
                 res = self.reader_client.get(url)
                 self.assertEqual(res.status_code, HTTPStatus.OK)
 
