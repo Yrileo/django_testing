@@ -1,15 +1,23 @@
-import pytest
 from datetime import datetime, timedelta
+import random
 
-from django.conf import settings
+import pytest
+
 from django.urls import reverse
-
 from news.models import News, Comment
+
+FORM_DATA = {
+    'text': 'Новый текст'
+}
+URL_HOME = reverse('news:home')
+LOGIN_URL = reverse('users:login')
+LOGOUT_URL = reverse('users:logout')
+SIGNUP_URL = reverse('users:signup')
 
 
 @pytest.fixture
 def author(django_user_model):
-    return django_user_model.objects.create(username='Артемка')
+    return django_user_model.objects.create(username='Автор')
 
 
 @pytest.fixture
@@ -39,27 +47,33 @@ def comment(author, news):
 
 @pytest.fixture
 def form_data():
-    return {
-        'text': 'Новый текст'
-    }
+    return FORM_DATA
 
 
 @pytest.fixture
 def make_many_news():
-    News.objects.bulk_create(
-        News(title=f'News number {index}',
-             text='News text',
-             date=datetime.today() - timedelta(days=index)
-             )
-        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
-    )
+    start_date = datetime.today()
+
+    for index in range(author, news, num_comments=2):
+        interval = timedelta(days=1)
+        created_date = start_date - index * interval
+        Comment.objects.create(
+            news=news,
+            author=author,
+            text=f'Text {index}',
+            created=created_date,
+        )
 
 
 @pytest.fixture
-def make_2_com(author, news):
-    for index in range(2):
+def make_comments(author, news, num_comments=2):
+    for index in range(num_comments):
+        created_date = datetime.today() - timedelta(days=random.randint(1, 10))
         Comment.objects.create(
-            news=news, author=author, text=f'Text {index}',
+            news=news,
+            author=author,
+            text=f'Text {index}',
+            created=created_date,
         )
 
 
@@ -80,19 +94,19 @@ def url_delete(comment):
 
 @pytest.fixture
 def url_home():
-    return reverse('news:home')
+    return URL_HOME
 
 
 @pytest.fixture
 def login_url():
-    return reverse('users:login')
+    return LOGIN_URL
 
 
 @pytest.fixture
 def logout_url():
-    return reverse('users:logout')
+    return LOGOUT_URL
 
 
 @pytest.fixture
 def signup_url():
-    return reverse('users:signup')
+    return SIGNUP_URL

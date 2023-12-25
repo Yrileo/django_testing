@@ -1,8 +1,10 @@
 from http import HTTPStatus
-from random import choice
+
+from django.urls import reverse
 
 import pytest
 from pytest_django.asserts import assertRedirects, assertFormError
+from django.urls import resolve
 
 from news.forms import BAD_WORDS, WARNING
 from news.models import Comment
@@ -48,24 +50,29 @@ def test_other_user_cant_edit_comment(
     assert count_old == count_new
 
 
-def test_author_can_delete_comment(
-        author_client, url_delete, url_detail
-):
+def test_author_can_delete_comment(author_client, url_delete, url_detail):
+    resolved_url = resolve(url_delete)
+    comment_id = resolved_url.kwargs.get('id', resolved_url.kwargs.get('pk'))
+    comment_to_delete = Comment.objects.get(pk=comment_id)
     count_old = Comment.objects.count()
     response = author_client.post(url_delete)
     expected_url = f'{url_detail}#comments'
     assertRedirects(response, expected_url)
     count_new = Comment.objects.count()
     assert count_old - 1 == count_new
+    with pytest.raises(Comment.DoesNotExist):
+        Comment.objects.get(pk=comment_to_delete.pk)
 
 
-def test_other_user_cant_delete_comment(
-        admin_client, url_delete
-):
+def test_other_user_cant_delete_comment(admin_client, url_delete):
+    # Получаем количество комментариев в бд
     count_old = Comment.objects.count()
+    # Пытаемся удалить комментарий
     response = admin_client.post(url_delete)
     assert response.status_code == HTTPStatus.NOT_FOUND
+    # Получаем новое количество в бд
     count_new = Comment.objects.count()
+    # Проверяем, что количество не изменилось после попытки удаления
     assert count_old == count_new
 
 
@@ -99,10 +106,12 @@ def test_other_user_cant_create_comment(
     assert count_old == count_new
 
 
-def test_user_cant_use_bad_words(admin_client, url_detail):
-    count_old = Comment.objects.count()
-    bad_words_data = {'text': f'Mr Petrov {choice(BAD_WORDS)}!'}
-    response = admin_client.post(url_detail, data=bad_words_data)
+@pytest.mark.parametrize('word', BAD_WORDS)
+def test_user_cant_use_bad_words(author_client, news, word):
+    expected_comment_count = Comment.objects.count()
+    bad_words_data = {'text': f'Какой-то текст, {word}, еще текст'}
+    url = reverse('news:detail', args=(news.id,))
+    response = author_client.post(url, data=bad_words_data)
     assertFormError(response, form='form', field='text', errors=WARNING)
-    count_new = Comment.objects.count()
-    assert count_old == count_new
+    comment_count = Comment.objects.count()
+    assert expected_comment_count == comment_count

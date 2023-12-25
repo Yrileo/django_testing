@@ -14,13 +14,6 @@ class CreatNoteConstantTestMixin:
     NOTE_SLUG = 'slug-test-1'
 
 
-class UpdateNoteConstantTestMixin:
-
-    NEW_NOTE_TITLE = 'New Тестовая заметка.'
-    NEW_NOTE_TEXT = 'New Текст заметки'
-    NEW_NOTE_SLUG = 'new-slug-test-1'
-
-
 class TestMixinAuthor:
 
     @classmethod
@@ -100,7 +93,7 @@ class TestCheck(TestCase):
 class UniqueSlugCreationMixin(TestMixinAuthor):
 
     @classmethod
-    def create_duplicate_note(cls):
+    def create_note(cls):
         return Note.objects.create(
             title=cls.NOTE_TITLE,
             text=cls.NOTE_TEXT,
