@@ -1,35 +1,40 @@
-from django.contrib.auth import get_user_model
-from django.urls import reverse
-
 from notes.forms import NoteForm
-from .mixin import TestMixinAuthorNoteReader, CreatNoteConstantTestMixin
+from notes.models import Note
 
-User = get_user_model()
+from .configurations import TestBaseParameters, Urls
 
 
-class TestContextNote(CreatNoteConstantTestMixin,
-                      TestMixinAuthorNoteReader):
+class TestContent(TestBaseParameters):
+    def test_note_displays_for_author(self):
+        self.assertEqual(
+            len(
+                self.author_client.get(Urls.NOTES_LIST).context['object_list']
+            ),
+            Note.objects.count()
+        )
+        self.assertIn(
+            self.note,
+            self.author_client.get(Urls.NOTES_LIST).context['object_list']
+        )
+        note = Note.objects.get(pk=self.note.pk)
+        self.assertEqual(
+            (note.title, note.text, note.slug, note.author),
+            (self.note.title, self.note.text, self.note.slug, self.note.author)
+        )
 
-    list_url = reverse('notes:list')
+    def test_note_displays_for_reader(self):
+        self.assertNotIn(
+            self.note,
+            self.reader_client.get(Urls.NOTES_LIST).context['object_list']
+        )
 
-    def test_context_note(self):
-        response = self.author_client.get(self.list_url)
-        object_list = response.context['object_list']
-        self.assertTrue(self.note in object_list)
-
-    def test_list_notes_user_doesnt_appear_notes_another(self):
-        client, value = self.reader_client, False
-        response = client.get(self.list_url)
-        object_list = response.context['object_list']
-        self.assertEqual((self.note in object_list), value)
-
-    def test_user_has_form(self):
-        for url, kwargs in (
-                ('notes:add', None),
-                ('notes:edit', {'slug': self.note.slug})
-        ):
+    def test_form_at_add_and_edit_urls(self):
+        testing_urls = (
+            Urls.NOTE_EDIT, Urls.NOTE_ADD
+        )
+        for url in testing_urls:
             with self.subTest(url=url):
-                url = reverse(url, kwargs=kwargs)
-                response = self.author_client.get(url)
-                self.assertIn('form', response.context)
-                self.assertIsInstance(response.context['form'], NoteForm)
+                self.assertIsInstance(
+                    self.author_client.get(url).context.get('form'),
+                    NoteForm
+                )

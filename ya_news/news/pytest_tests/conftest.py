@@ -1,112 +1,124 @@
-from datetime import datetime, timedelta
-import random
-
 import pytest
 
+from django.conf import settings
+from django.test import Client
 from django.urls import reverse
-from news.models import News, Comment
-
-FORM_DATA = {
-    'text': 'Новый текст'
-}
-URL_HOME = reverse('news:home')
-LOGIN_URL = reverse('users:login')
-LOGOUT_URL = reverse('users:logout')
-SIGNUP_URL = reverse('users:signup')
+from django.utils import timezone
+from news.models import Comment, News
 
 
 @pytest.fixture
 def author(django_user_model):
-    return django_user_model.objects.create(username='Автор')
+    return django_user_model.objects.create(username='Author')
 
 
 @pytest.fixture
-def author_client(author, client):
-    client.force_login(author)
-    return client
+def reader(django_user_model):
+    return django_user_model.objects.create(username='Reader')
+
+
+@pytest.fixture
+def author_client(author):
+    author_client = Client()
+    author_client.force_login(author)
+    return author_client
+
+
+@pytest.fixture
+def reader_client(reader):
+    reader_client = Client()
+    reader_client.force_login(reader)
+    return reader_client
 
 
 @pytest.fixture
 def news():
-    news = News.objects.create(
-        title='Заголовок',
-        text='Текст'
+    return News.objects.create(
+        title='Test News',
+        text='Some text',
     )
-    return news
 
 
 @pytest.fixture
 def comment(author, news):
-    comment = Comment.objects.create(
+    return Comment.objects.create(
         news=news,
         author=author,
-        text='Текст комментария'
+        text='Test Comment',
     )
-    return comment
 
 
 @pytest.fixture
-def form_data():
-    return FORM_DATA
+def bulk_news():
+    today = timezone.now()
+    return News.objects.bulk_create(
+        News(
+            title=f'Новость #{index}',
+            text=f'Simple text #{index}.',
+            date=today - timezone.timedelta(days=index)
+        )
+        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
+    )
 
 
 @pytest.fixture
-def make_many_news():
-    start_date = datetime.today()
-
-    for index in range(author, news, num_comments=2):
-        interval = timedelta(days=1)
-        created_date = start_date - index * interval
-        Comment.objects.create(
+def bulk_comments(news, author):
+    today = timezone.now()
+    for index in range(3):
+        comment = Comment.objects.create(
             news=news,
             author=author,
-            text=f'Text {index}',
-            created=created_date,
+            text=f'Comment text #{index}'
         )
+        comment.created = today - timezone.timedelta(days=index)
+        comment.save()
 
 
 @pytest.fixture
-def make_comments(author, news, num_comments=2):
-    for index in range(num_comments):
-        created_date = datetime.today() - timedelta(days=random.randint(1, 10))
-        Comment.objects.create(
-            news=news,
-            author=author,
-            text=f'Text {index}',
-            created=created_date,
-        )
+def news_home_url():
+    return reverse('news:home')
 
 
 @pytest.fixture
-def url_detail(news):
-    return reverse('news:detail', args=(news.id,))
+def news_detail_url(news):
+    return reverse('news:detail', args=(news.pk,))
 
 
 @pytest.fixture
-def url_edit(comment):
-    return reverse('news:edit', args=(comment.id,))
+def news_delete_url(comment):
+    return reverse('news:delete', args=(comment.pk,))
 
 
 @pytest.fixture
-def url_delete(comment):
-    return reverse('news:delete', args=(comment.id,))
-
-
-@pytest.fixture
-def url_home():
-    return URL_HOME
+def news_edit_url(comment):
+    return reverse('news:edit', args=(comment.pk,))
 
 
 @pytest.fixture
 def login_url():
-    return LOGIN_URL
+    return reverse('users:login')
 
 
-@pytest.fixture
+@pytest.fixture()
 def logout_url():
-    return LOGOUT_URL
+    return reverse('users:logout')
 
 
 @pytest.fixture
 def signup_url():
-    return SIGNUP_URL
+    return reverse('users:signup')
+
+
+@pytest.fixture
+def to_news_edit_url_after_login(login_url, news_edit_url):
+    return f'{login_url}?next={news_edit_url}'
+
+
+@pytest.fixture
+def to_news_delete_url_after_login(login_url, news_delete_url):
+    return f'{login_url}?next={news_delete_url}'
+
+
+@pytest.fixture
+def to_news_detail_url_after_login(login_url, news_detail_url):
+    return f'{login_url}?next={news_detail_url}'
