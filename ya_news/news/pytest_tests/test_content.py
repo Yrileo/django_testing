@@ -13,13 +13,13 @@ def test_news_count(bulk_news, client, news_home_url):
     assert len(object_list) == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
-def test_news_order_sorting(bulk_news, client, news_home_url):
+def test_news_order_sorting(client, news_home_url):
     all_dates = [news.date for news in
                  client.get(news_home_url).context['object_list']]
     assert all_dates == sorted(all_dates, reverse=True)
 
 
-def test_comments_sorting(bulk_comments, client, news_detail_url):
+def test_comments_sorting(client, news_detail_url):
     all_dates = [comment.created for comment in
                  client.get(news_detail_url).context['news'].comment_set.all()]
     assert all_dates == sorted(all_dates)
