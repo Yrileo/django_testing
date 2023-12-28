@@ -9,6 +9,7 @@ from .configurations import TestBaseParameters, Urls
 
 
 class TestClass(TestBaseParameters):
+
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
@@ -36,8 +37,7 @@ class TestClass(TestBaseParameters):
 
     def test_anonymous_user_cant_create_note(self):
         self.assertRedirects(
-            self.anonymous_client.post(Urls.NOTE_ADD,
-                                       data=self.new_note_data),
+            self.anonymous_client.post(Urls.NOTE_ADD, data=self.new_note_data),
             Urls.REDIRECT_TO_NOTE_ADD
         )
         self.assertEqual(

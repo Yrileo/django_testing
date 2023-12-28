@@ -4,6 +4,7 @@ from .configurations import TestBaseParameters, Urls
 
 
 class TestRoutes(TestBaseParameters):
+
     def test_urls_status_cods(self):
         testing_urls = (
             (self.anonymous_client, Urls.HOME, HTTPStatus.OK),

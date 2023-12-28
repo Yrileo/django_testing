@@ -5,6 +5,7 @@ from .configurations import TestBaseParameters, Urls
 
 
 class TestContent(TestBaseParameters):
+
     def test_note_displays_for_author(self):
         self.assertEqual(
             len(
