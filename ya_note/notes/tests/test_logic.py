@@ -13,7 +13,6 @@ class TestClass(TestBaseParameters):
     @classmethod
     def setUpTestData(cls):
         super().setUpTestData()
-        cls.notes_before = set(Note.objects.all())
 
     def test_created_note_with_and_without_slug(self):
         creation_cases = (
@@ -36,15 +35,17 @@ class TestClass(TestBaseParameters):
                 )
 
     def test_anonymous_user_cant_create_note(self):
+        notes_before = set(Note.objects.all())
         self.assertRedirects(
             self.anonymous_client.post(Urls.NOTE_ADD, data=self.new_note_data),
             Urls.REDIRECT_TO_NOTE_ADD
         )
         self.assertEqual(
-            self.notes_before, set(Note.objects.all())
+            notes_before, set(Note.objects.all())
         )
 
     def test_cant_use_slug_again(self):
+        notes_before = set(Note.objects.all())
         self.new_note_data['slug'] = self.note.slug
         self.assertFormError(
             self.author_client.post(Urls.NOTE_ADD, data=self.new_note_data),
@@ -53,7 +54,7 @@ class TestClass(TestBaseParameters):
             errors=self.new_note_data['slug'] + WARNING
         )
         self.assertEqual(
-            self.notes_before, set(Note.objects.all())
+            notes_before, set(Note.objects.all())
         )
 
     def test_author_can_edit(self):
@@ -70,8 +71,9 @@ class TestClass(TestBaseParameters):
         )
 
     def test_author_can_delete_note(self):
+        notes_before = set(Note.objects.all())
         self.author_client.delete(Urls.NOTE_DELETE)
-        self.assertEqual(Note.objects.count(), len(self.notes_before) - 1)
+        self.assertEqual(Note.objects.count(), len(notes_before) - 1)
         self.assertFalse(Note.objects.filter(pk=self.note.pk).exists())
 
     def test_reader_cant_delete_note(self):

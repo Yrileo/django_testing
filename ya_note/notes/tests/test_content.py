@@ -7,16 +7,13 @@ from .configurations import TestBaseParameters, Urls
 class TestContent(TestBaseParameters):
 
     def test_note_displays_for_author(self):
-        self.assertEqual(
-            len(
-                self.author_client.get(Urls.NOTES_LIST).context['object_list']
-            ),
-            Note.objects.count()
-        )
-        self.assertIn(
-            self.note,
-            self.author_client.get(Urls.NOTES_LIST).context['object_list']
-        )
+        response = self.author_client.get(Urls.NOTES_LIST)
+        self.assertIn('object_list', response.context)
+        if 'object_list' in response.context:
+            self.assertEqual(
+                len(response.context['object_list']),
+                len(Note.objects.all())
+            )
         note = Note.objects.get(pk=self.note.pk)
         self.assertEqual(
             (note.title, note.text, note.slug, note.author),

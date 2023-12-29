@@ -86,12 +86,12 @@ def news_detail_url(news):
 
 
 @pytest.fixture
-def news_delete_url(comment):
+def comment_delete_url(comment):
     return reverse('news:delete', args=(comment.pk,))
 
 
 @pytest.fixture
-def news_edit_url(comment):
+def comment_edit_url(comment):
     return reverse('news:edit', args=(comment.pk,))
 
 
@@ -111,13 +111,13 @@ def signup_url():
 
 
 @pytest.fixture
-def to_news_edit_url_after_login(login_url, news_edit_url):
-    return f'{login_url}?next={news_edit_url}'
+def to_news_edit_url_after_login(login_url, comment_edit_url):
+    return f'{login_url}?next={comment_edit_url}'
 
 
 @pytest.fixture
-def to_news_delete_url_after_login(login_url, news_delete_url):
-    return f'{login_url}?next={news_delete_url}'
+def to_news_delete_url_after_login(login_url, comment_delete_url):
+    return f'{login_url}?next={comment_delete_url}'
 
 
 @pytest.fixture

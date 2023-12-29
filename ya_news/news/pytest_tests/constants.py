@@ -4,8 +4,8 @@ import pytest
 class Urls:
     NEWS_HOME = pytest.lazy_fixture('news_home_url')
     NEWS_DETAIL = pytest.lazy_fixture('news_detail_url')
-    NEWS_DELETE = pytest.lazy_fixture('news_delete_url')
-    NEWS_EDIT = pytest.lazy_fixture('news_edit_url')
+    NEWS_DELETE = pytest.lazy_fixture('comment_delete_url')
+    NEWS_EDIT = pytest.lazy_fixture('comment_edit_url')
     LOGIN = pytest.lazy_fixture('login_url')
     LOGOUT = pytest.lazy_fixture('logout_url')
     SIGNUP = pytest.lazy_fixture('signup_url')

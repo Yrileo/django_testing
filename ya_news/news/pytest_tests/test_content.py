@@ -8,7 +8,9 @@ pytestmark = pytest.mark.django_db
 
 
 def test_news_count(bulk_news, client, news_home_url):
-    object_list = client.get(news_home_url).context['object_list']
+    response = client.get(news_home_url)
+    assert 'object_list' in response.context
+    object_list = response.context['object_list']
     assert len(object_list) == settings.NEWS_COUNT_ON_HOME_PAGE
 
 
