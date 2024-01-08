@@ -8,11 +8,9 @@ pytestmark = pytest.mark.django_db
 
 
 def test_of_news_sorting(bulk_news, client, news_home_url):
-    all_titles = [news.title for news in
-                  client.get(news_home_url).context['object_list']]
-    all_dates = [news.date for news in
-                 client.get(news_home_url).context['object_list']]
-    assert all_titles == sorted(all_titles)
+    response = client.get(news_home_url)
+    assert 'object_list' in response.context
+    all_dates = [news.date for news in response.context['object_list']]
     assert all_dates == sorted(all_dates, reverse=True)
 
 

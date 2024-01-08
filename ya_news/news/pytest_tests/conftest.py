@@ -52,14 +52,12 @@ def comment(author, news):
 @pytest.fixture
 def bulk_news():
     today = timezone.now()
-    return News.objects.bulk_create(
-        News(
+    for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1):
+        News.objects.create(
             title=f'Новость #{index}',
             text=f'Simple text #{index}.',
             date=today - timezone.timedelta(days=index)
         )
-        for index in range(settings.NEWS_COUNT_ON_HOME_PAGE + 1)
-    )
 
 
 @pytest.fixture
